@@ -14,14 +14,16 @@
 
 import numpy as np
 from scipy.sparse import csr_matrix
+import timeit
 
 def SMP(A, B):
     n = A.shape[0]
 
-    # Step 1
-    ak = np.array([np.count_nonzero(A[:, k]) for k in range(n)])
-    # Step 2
-    bk = np.array([np.count_nonzero(B[k, :]) for k in range(n)])
+    # Step 1: Use np.sum instead of np.count_nonzero
+    ak = np.array([np.sum(A[:, k] != 0) for k in range(n)])
+
+    # Step 2: Use np.sum instead of np.count_nonzero
+    bk = np.array([np.sum(B[k, :] != 0) for k in range(n)])
     
     # Step 3
     pi = np.argsort(ak * bk)[::-1]
@@ -44,6 +46,7 @@ def SMP(A, B):
     C1 = A[:, I] @ B[I, :]
 
     # Step 7: Compute C2 using the naive sparse matrix multiplication algorithm
+    #TODO
     C2 = csr_matrix(A[:, J]) @ csr_matrix(B[J, :])
 
     # Step 8: Output C1 + C2
@@ -52,10 +55,50 @@ def SMP(A, B):
 # Example usage:
 # A and B are numpy arrays representing two matrices
 # C = SMP(A, B)
-A = np.array([[1, 0, 2], [0, 3, 0], [4, 0, 5]])
-B = np.array([[6, 0, 7], [0, 8, 0], [9, 0, 10]])
+# A = np.array([[1, 0, 2], [0, 3, 0], [4, 0, 5]])
+# B = np.array([[6, 0, 7], [0, 8, 0], [9, 0, 10]])
 
-C = SMP(A, B)
-print(C)
-C = A@B
-print(C)
+# C = SMP(A, B)
+# print(C)
+# C = A@B
+# print(C)
+# Generate random dense and sparse matrices with size over 500x500
+
+
+
+# judge time complexity
+
+
+dense_size = (10000, 10000)  # Adjust the size as needed
+sparse_size = (10000, 10000)  # Adjust the size as needed
+
+dense_A = np.random.rand(*dense_size)
+dense_B = np.random.rand(*dense_size)
+
+threshold = 0.99  # Adjust the threshold as needed
+sparse_A = dense_A
+sparse_A[sparse_A < threshold] = 0
+sparse_B = dense_B
+sparse_B[sparse_B < threshold] = 0
+# Time SMP(A, B)
+# judge correrctness
+tolerance = 1e-6  # Adjust the tolerance as needed
+are_equal = np.allclose(SMP(dense_A, dense_B), dense_A @ dense_B, atol=tolerance)
+print(are_equal)
+
+
+
+smp_time = timeit.timeit(lambda: SMP(dense_A, dense_B), number=1)
+print(f"SMP dense Time: {smp_time:.6f} seconds")
+
+# Time A @ B
+matmul_time = timeit.timeit(lambda: dense_A @ dense_B, number=1)
+print(f"Matrix Multiplication dense Time: {matmul_time:.6f} seconds")
+
+# Time SMP(A, B)
+smp_time = timeit.timeit(lambda: SMP(sparse_A, sparse_B), number=1)
+print(f"SMP sparese Time: {smp_time:.6f} seconds")
+
+# Time A @ B
+matmul_time = timeit.timeit(lambda: sparse_A @ sparse_B, number=1)
+print(f"Matrix Multiplication sparse Time: {matmul_time:.6f} seconds")
